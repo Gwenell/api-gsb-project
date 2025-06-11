@@ -11,6 +11,7 @@ use App\Models\Utilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Exception;
 
 class StatisticsController extends Controller
 {
@@ -19,6 +20,7 @@ class StatisticsController extends Controller
      */
     public function getDashboardStats(Request $request)
     {
+        try {
         $periode = $request->get('periode', 'mois');
         $date = $request->get('date', now()->format('Y-m'));
 
@@ -72,5 +74,20 @@ class StatisticsController extends Controller
             'top_doctors' => $topDoctors,
             'periode' => $date
         ]);
+        } catch (Exception $e) {
+            \Log::error("Error in dashboard stats: " . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
+            return response()->json([
+                'error' => 'An error occurred while fetching dashboard statistics',
+                'message' => $e->getMessage(),
+                'debug' => app()->environment('production') && !config('app.debug') ? null : [
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                    'file' => $e->getFile()
+                ]
+            ], 500);
+        }
     }
 } 
